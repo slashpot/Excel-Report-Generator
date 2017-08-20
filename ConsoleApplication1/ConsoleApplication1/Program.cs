@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+using Excel = Microsoft.Office.Interop.Excel;
+
 
 namespace ConsoleApplication1
 {
@@ -35,11 +34,20 @@ namespace ConsoleApplication1
         private static Type _dataType;
         private static PropertyInfo[] _dataProperties;
 
+        private static Excel.Application _excel_app;
+        private static Excel.Workbook _excel_wb;
+        private static Excel.Worksheet _excel_ws;
+
+        private static int _row = 1;
+        private static int _col = 1;
+
         static void Main(string[] args)
         {
             InitializeData();
+            InitializeExcel();
             GetDataTypeAndProperties();
             GenerateReport();
+            SaveExcel();
         }
 
         private static void InitializeData()
@@ -47,6 +55,14 @@ namespace ConsoleApplication1
             _datalist.Add(new Data { Name = "Scot", Gender = "Male", Age = 30 });
             _datalist.Add(new Data { Name = "Ethan", Gender = "Male", Age = 30 });
             _datalist.Add(new Data { Name = "Eric", Gender = "Female", Age = 50 });
+        }
+
+        private static void InitializeExcel()
+        {
+            _excel_app = new Excel.Application();
+            _excel_wb = _excel_app.Workbooks.Add();
+            _excel_ws = _excel_wb.Worksheets[1];
+            _excel_ws.Name = "001";
         }
 
         private static void GetDataTypeAndProperties()
@@ -66,18 +82,24 @@ namespace ConsoleApplication1
             if (Attribute.IsDefined(property, typeof(CsvExport)))
             {
                 var attribute = property.GetCustomAttribute(typeof(CsvExport));
-                Console.WriteLine(((CsvExport)attribute).Type);
-
+                _excel_app.Cells[_row, _col] = ((CsvExport)attribute).Type;
+       
                 foreach (Data d in _datalist)
                 {
-                    Console.WriteLine(property.GetValue(d));
-                    Console.ReadLine();
+                    _row++;
+                    _excel_app.Cells[_row, _col] = property.GetValue(d);
                 }
+
+                _col++;
+                _row = 1;
             }
         }
 
-
-
-        
+        private static void SaveExcel()
+        {
+            _excel_wb.SaveAs(Environment.CurrentDirectory + @"\result.xlsx");
+            _excel_wb.Close();
+            _excel_app.Quit();
+        }
     }
 }
